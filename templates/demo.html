@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+    <title>Upload</title>
+
+    <script src="/static/md5.js" type="text/javascript"></script>
+    <script src="/static/jquery.min.js" type="text/javascript"></script>
+
+    <script src="/static/plupload.full.min.js" type="text/javascript"></script>
+    <style>
+        a.rm {
+            color: red;
+            margin: 0 1rem;
+            text-decoration: none;
+        }
+
+        .upload-tips {
+            width: 450px;
+            border: 3px dashed rgba(128, 128, 128, 0.2);
+            border-radius: 1rem;
+            text-align: center;
+            padding: 3rem 0;
+            color: #bbb;
+            z-index: -99;
+            margin: 1rem 0;
+        }
+
+        #container > a {
+            margin: 0 1rem;
+        }
+
+        #check_status {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+<div id="upload">
+    <div id="container">
+        <a href="{{ url_for("index") }}" style="float: none">返回文件列表</a>
+        <a id="pickfiles" href="javascript:;">选择文件</a>
+        <a id="uploadfiles" href="javascript:;">上传文件</a>
+    </div>
+    <div id="filelist">
+        <div class="upload-tips"><span>文件拖放至此处</span></div>
+    </div>
+</div>
+
+<script>
+    function qf(fO, h, c) {
+        $.post({
+            url: "{{ url_for("check_uploads") }}",
+            data: {"hs": h, "mc": c},
+            async: false,
+            success: function (data) {
+                //console.log("qf debug: ", fO.loaded, data.has_loaded); //debug
+                fO.has_checked = true;
+                fO.hash = h;
+                if (data.has_loaded >= fO.size) {
+                    fO.status = 5;
+                    return uploader.trigger("FileUploaded", fO)
+                } else {
+                    fO.loaded = data.has_loaded || 0;
+                    return $("#" + fO.id + "> b:eq(0)").html("<span id='check_status'>Ready</span>");
+                }
+            }
+        })
+    }
+</script>
+<script>
+    var uploader = new plupload.Uploader({
+        container: document.getElementById('container'),
+        browse_button: 'pickfiles',
+        drop_element: "filelist",
+
+        runtimes: 'html5,html4',  //flash,
+        url: '{{ url_for("uploads") }}',
+        chunk_size: '{{ cfg.chunk_size }}',
+        unique_names: true,
+        prevent_duplicates: true,
+        filters: {
+            max_file_size: '{{ cfg.max_content_length }}',
+            mime_types: [
+                {title: "Media files", extensions: "mp4,mp3"},
+                {title: "Image files", extensions: "jpg,gif,png,pdf,bmp,jpeg"},
+                {title: "Zip files", extensions: "zip,rar,7z,bz2"},
+                {title: "Office files", extensions: "doc,docx,xls,xlsx,ppt,pptx"},
+                {title: "Normal Twxt files", extensions: "txt,md"}
+            ]
+        },
+
+        preinit: {
+            UploadFile: function (up, file) {
+                file.target_name = file.name;
+                // console.log("UploadFile: debug");
+                up.setOption('multipart_params', {"hs": file.hash});
+            }
+        },
+
+        init: {  // #start
+            PostInit: function () {
+                document.getElementById('uploadfiles').onclick = function () {
+                    uploader.start();
+                    return false;
+                };
+            },
+
+            FilesAdded: function (up, files) {
+                plupload.each(files, function (file) {
+                    var h = '<div id="' + file.id + '"><a class="rm" href="javascript:;">&#10008;</a>' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b></div>';
+                    document.getElementById('filelist').innerHTML += h;
+                    $("a.rm").bind("click", function () {
+                        var d = $(this).closest("div"), fo = uploader.getFile(d.attr("id"));
+                        uploader.removeFile(fo);
+                        d.remove();
+                    });
+                    $("#" + file.id + "> b:eq(0)").html("<span id='check_status'>Checking</span>");
+
+                    if (file.has_checked != true) {  // file.has_checked is avoid duplicate checks.
+                        // debugger;
+                        if (file.size < up.settings.chunk_size) {
+                            var reader = new FileReader();
+
+                            reader.onload = function () {
+                                var min_hash = CryptoJS.MD5(CryptoJS.enc.Latin1.parse(reader.result)).toString();
+                                qf(file, min_hash);
+                                console.log("Stand md5", min_hash);
+                            };
+                            reader.readAsBinaryString(file.getNative());
+
+                            //# for base64
+                            //reader.onload = function () {
+                            //var min_hash = CryptoJS.MD5(reader.result.split(",")[1]).toString();
+                            //console.log("Base64 md5", min_hash);
+                            //};
+                            //reader.readAsDataURL(file.getNative());
+
+                        } else {
+                            var hash = CryptoJS.algo.MD5.create();
+                            var Of = file.getNative(), cs = up.settings.chunk_size;
+                            var max_chunks = Math.ceil(Of.size / cs);
+                            var i = 0;
+
+                            function readBlob() {
+                                var s = i * cs, e = s + 4;
+                                return Of.slice(s, e)
+                            }
+
+                            var tr = new FileReader();
+                            tr.onload = function () {
+                                // callback
+                                //t = tr.result.split(",")[1];  //# for base64
+                                var t = CryptoJS.enc.Latin1.parse(tr.result);
+                                hash.update(t);
+
+                                // cycle
+                                if (i < max_chunks) {
+                                    i++;
+                                    //tr.readAsDataURL(readBlob(i));  //# for base64
+                                    tr.readAsBinaryString(readBlob(i));
+                                } else {
+                                    // console.log("Base64 md5", hash.finalize().toString());  //# for base64
+                                    var hs = hash.finalize().toString();
+                                    qf(file, hs, max_chunks);
+                                    console.log("Stand md5", hs);
+                                }
+                            };
+                            //tr.readAsDataURL(readBlob(i));  //# for base64
+                            tr.readAsBinaryString(readBlob(i));
+                        }
+                        //debugger;
+                    }
+                });
+            },
+            UploadProgress: function (up, file) {
+                console.log("UploadProgress: dbg");
+                $("#" + file.id + "> b:eq(0)").html("<span>Uploding " + file.percent + "%</span>");
+            },
+
+            FileUploaded: function (up, file, info) {
+                console.log("FileUploaded: dbg");
+                $("#" + file.id + "> b:eq(0)").html("<span style='color:green'>UploadComplete</span>");
+            },
+
+            Error: function (up, args) {
+                console.log('[Error] ', args);
+                alert(args.message);
+            }
+        }  // #end
+    });
+
+    uploader.init()
+</script>
+
+</body>
+</html>

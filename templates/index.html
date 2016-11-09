@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}Index{% endblock %}
+
+{% block content %}
+    <div class="menu center">
+        <div><a href="{{ url_for("uploads") }}">上传</a></div>
+        <div style="display: inline-flex">
+            <a id="pre" style="margin: 0 1rem" href="javascript:;">上一页</a>
+            <a id="next" style="margin: 0 1rem" href="javascript:;">下一页</a>
+        </div>
+        <div><a href="{{ url_for("logout") }}" title="logout!!">
+            <i class="fa fa-times fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
+        </a></div>
+    </div>
+    <div class="content center">
+        {% if files %}
+            <ol>
+                {% for item in files %}
+                    <li><a href="{{ url_for("details", fid=item.fid|e) }}">{{ item.filename|e }}</a></li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <h3>No files uploaded.</h3>
+        {% endif %}
+    </div>
+
+    <script>
+        var cp=new Number("{{ cp }}");
+        $("#pre").bind("click", function () {
+            location.href = "http://" + location.hostname + ":" + location.port + "/pages/" + ((cp - 1 >= 0) && (cp - 1) || 1);
+        });
+        $("#next").bind("click", function () {
+            location.href = "http://" + location.hostname + ":" + location.port + "/pages/" + ((cp + 1 >= 0) && (cp + 1) || 1);
+        })
+    </script>
+{% endblock %}

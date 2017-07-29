@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from includes.dbInterface import init_db
+import unittest
+
+
+class MyTestCase(unittest.TestCase):
+    def test_db_init(self):
+        from includes.dbInterface import init_db
+
+        init_db()
 
 
 if __name__ == '__main__':
-    init_db()
+    unittest.main()

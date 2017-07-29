@@ -20,36 +20,36 @@
                     <i class="fa fa-angle-double-left fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
                 </a>
             </div>
-                <div id="download">
-                    <form method="post">
-                        <button type="submit" name="button" value="download">下载</button>
-                    </form>
-                </div>
+{#                <div id="download">#}
+{#                    <form method="post">#}
+{#                        <button type="submit" name="button" value="download">下载</button>#}
+{#                    </form>#}
+{#                </div>#}
 
-                <div id="share">
-                    {% if file.password is none %}
-                        <form method="post" action="{{ url_for("share_friends", share_type="share") }}">
-                            <input name="code" type="hidden" value="1">
-                            <button name="button" value="share">分享</button>
-                        </form>
-                    {% else %}
-                        <form method="post" action="{{ url_for("share_friends", share_type="unshare") }}">
-                            <input name="code" type="hidden" value="2">
-                            <button name="button" value="unshare">取消分享</button>
-                        </form>
-                    {% endif %}
-                </div>
+{#                <div id="share">#}
+{#                    {% if file.password is none %}#}
+{#                        <form method="post" action="{{ url_for("share_friends", share_type="share") }}">#}
+{#                            <input name="code" type="hidden" value="1">#}
+{#                            <button name="button" value="share">分享</button>#}
+{#                        </form>#}
+{#                    {% else %}#}
+{#                        <form method="post" action="{{ url_for("share_friends", share_type="unshare") }}">#}
+{#                            <input name="code" type="hidden" value="2">#}
+{#                            <button name="button" value="unshare">取消分享</button>#}
+{#                        </form>#}
+{#                    {% endif %}#}
+{#                </div>#}
 
                 <div id="delete">
                     <form method="post">
                         <button type="submit" name="button" value="delete">删除</button>
                     </form>
                 </div>
-            <div class="logout">
-                <a href="{{ url_for("logout") }}" title="Logout!!">
-                    <i class="fa fa-times fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
-                </a>
-            </div>
+{#            <div class="logout">#}
+{#                <a href="{{ url_for("logout") }}" title="Logout!!">#}
+{#                    <i class="fa fa-times fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>#}
+{#                </a>#}
+{#            </div>#}
         </div>
 
         <div id="information" data-id="{{ file.fid|e }}" class="center">

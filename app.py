@@ -11,6 +11,8 @@ ALLOWED_EXTENSIONS = app.config['ALLOWED_EXTENSIONS']
 
 CHUNK_SIZE = app.config["CHUNK_SIZE"]
 UPLOAD_PATH = app.config['UPLOAD_DIR']
+FILE_PREFIX = app.config['FILE_PREFIX']
+FILE_EXT_CHENK = app.config["FILE_EXT_CHENK"]
 
 if not os_path.exists(UPLOAD_PATH):
     os_mkdir(UPLOAD_PATH)

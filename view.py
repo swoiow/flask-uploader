@@ -5,12 +5,9 @@ http://blog.csdn.net/luoyehanfei/article/details/41803259
 http://www.oschina.net/code/snippet_1767531_39336
 https://github.com/moxiecode/plupload/wiki/File#loaded-property
 """
-from collections import defaultdict
 from datetime import datetime
 
-from flask import (render_template, request, redirect, session, url_for, abort, jsonify, send_from_directory,
-                   _app_ctx_stack)
-from werkzeug.security import check_password_hash
+from flask import (render_template, request, redirect, session, url_for, abort, jsonify, _app_ctx_stack)
 
 from app import *
 from includes.dbInterface import (query_db, get_db, write_db)
@@ -35,7 +32,7 @@ def details(fid=None):
 
     if rv:
         fileObj = FileINT(dict(rv))
-        is_allowed = security(fileObj)
+        is_allowed = True  # security(fileObj)
 
         if session.get("userPMS") == u"admin":
             is_allowed = True
@@ -49,7 +46,7 @@ def details(fid=None):
             if is_allowed and (request.form.get("button") == u"download"):
                 return redirect(url_for("download", token=fileObj.md.fid))
 
-            if (session.get("userPMS") == u"admin") and (request.form.get("button") == u"delete"):
+            if (request.form.get("button") == u"delete"):  # (session.get("userPMS") == u"admin") and
                 rv = fileObj.delete_file(db_obj=get_db())
                 # return jsonify(rv)
                 return redirect(url_for("index"))
@@ -66,7 +63,7 @@ def uploads():
         filename = char_trans(request.form["name"])
         file_hash = request.form["hs"]
 
-        allowed = FileINT.allowed_file(filename, whitelist=ALLOWED_EXTENSIONS)
+        allowed = FILE_EXT_CHENK and FileINT.allowed_file(filename, whitelist=ALLOWED_EXTENSIONS) or True
         if any([not _file, not allowed, not file_hash]):
             return jsonify(msg="-2, Not allow"), 501
         else:
@@ -90,7 +87,10 @@ def uploads():
                 # 文件已存在
                 fileObj = FileINT(dict(rv))
 
-            w_filename = "_".join([fileObj.md.fid, fileObj.md.filename])
+            if FILE_PREFIX:
+                w_filename = "_".join([fileObj.md.fid, fileObj.md.filename])
+            else:
+                w_filename = fileObj.md.filename
 
             __BIN__ = _file.read()
             if chunks == 1:
@@ -126,76 +126,14 @@ def check_uploads():
             filename = char_trans("_".join([fileObj.md.fid, fileObj.md.filename]))
             exit_chunks = FileINT.check_exit_file(filename=filename, chunks=int(file_chunks), uploadpath=UPLOAD_PATH)
 
-        rt.update(has_loaded=exit_chunks * chunk_size)
+        rt.update(dict(has_loaded=exit_chunks * chunk_size))
 
     return jsonify(rt)
 
 
-@upload_app.route("/d/<token>", methods=["GET"])
-def download(token):
-    sql = 'SELECT fid FROM "index" WHERE fid = ?;'
-    rv = query_db(get_db(), sql, args=(token,), one=True)
-
-    fileObj = FileINT(dict(rv))
-    try:
-        _FILE_NAME = "_".join([fileObj.md.fid, fileObj.md.filename])
-        kw = dict(attachment_filename=char_trans(fileObj.md.filename, str_=True), as_attachment=True, cache_timeout=0)
-        return send_from_directory(UPLOAD_PATH, _FILE_NAME, **kw)
-    except KeyError:
-        return abort(404)
-
-
-@upload_app.route("/share_friends/<share_type>", methods=["POST"])
-def share_friends(share_type=None):
-    fid = request.form.get("id", type=str)
-
-    is_allowed = security(FileINT(fid))
-    if is_allowed:
-        FileINT.share_file(db_obj=get_db(), fid=fid, share_type=share_type)
-    else:
-        return abort(400)
-
-    return redirect(request.referrer, 302)
-
-
-@upload_app.route("/login", methods=["GET", "POST"])
-def login():
-    error = None
-    if request.method == "POST":
-        sql = 'SELECT * FROM users WHERE username = ?;'
-        user = query_db(get_db(), sql, (request.form['username'],), one=True)
-
-        if user is None:
-            error = "Invalid username"
-        elif not check_password_hash(user['pw_hash'], request.form['password']):
-            error = "Invalid password"
-        else:
-            # write session
-            session.update(logged_in=True, user=user['username'], userPMS=user["pms"])
-            return redirect(url_for("index"))
-
-    return render_template("login.html", error=error)
-
-
 @upload_app.route("/logout")
 def logout():
-    rm = ["logged_in", "user", "access", "userPMS"]
-    for item in rm:
-        session.pop(item, None)
     return redirect(url_for("index"))
-
-
-@upload_app.before_request
-def before_request():
-    if upload_app.config["DEBUG"] and session.get("times", 0) < 1:
-        if not session.get("logged_in", False) and request.remote_addr in ["127.0.0.1", "localhost"]:
-            session.update(logged_in=True, user="demo", times=1, userPMS="admin")
-
-    if not session.get("logged_in", False) and request.endpoint not in ("login", "logout", "static", "details"):
-        return redirect("login")
-
-    if not session.get("access"):
-        session["access"] = defaultdict(lambda: False)
 
 
 @upload_app.teardown_request

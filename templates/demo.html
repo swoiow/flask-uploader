@@ -82,13 +82,13 @@
         prevent_duplicates: true,
         filters: {
             max_file_size: '{{ cfg.max_content_length }}',
-            mime_types: [
-                {title: "Media files", extensions: "mp4,mp3"},
-                {title: "Image files", extensions: "jpg,gif,png,pdf,bmp,jpeg"},
-                {title: "Zip files", extensions: "zip,rar,7z,bz2"},
-                {title: "Office files", extensions: "doc,docx,xls,xlsx,ppt,pptx"},
-                {title: "Normal Twxt files", extensions: "txt,md"}
-            ]
+{#            mime_types: [#}
+{#                {title: "Media files", extensions: "mp4,mp3"},#}
+{#                {title: "Image files", extensions: "jpg,gif,png,pdf,bmp,jpeg"},#}
+{#                {title: "Zip files", extensions: "zip,rar,7z,bz2"},#}
+{#                {title: "Office files", extensions: "doc,docx,xls,xlsx,ppt,pptx"},#}
+{#                {title: "Normal Twxt files", extensions: "txt,md"}#}
+{#            ]#}
         },
 
         preinit: {

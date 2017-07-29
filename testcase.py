@@ -5,7 +5,7 @@ import unittest
 
 class MyTestCase(unittest.TestCase):
     def test_db_init(self):
-        from includes.dbInterface import init_db
+        from utils.dbInterface import init_db
 
         init_db()
 

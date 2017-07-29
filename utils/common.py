@@ -1,7 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import random
 import string
+import socket
 
 try:
     from dbInterface import query_db
@@ -56,3 +56,12 @@ def id_generator(size=6, db=None, chars=string.ascii_letters + string.digits, ch
 
     else:
         return ''.join(random.choice(chars) for _ in range(size))
+
+
+def get_local_ip_by_prefix(prefix):
+    local_ip = ''
+    for ip in socket.gethostbyname_ex(socket.gethostname())[2]:
+        if ip.startswith(prefix):
+            local_ip = ip
+
+    return local_ip

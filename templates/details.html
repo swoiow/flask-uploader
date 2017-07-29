@@ -3,107 +3,39 @@
 {% block title %}{% if allowed %}文件信息{% else %}访问限制{% endif %}{% endblock %}
 
 {% block content %}
-    {% if not allowed %}
-        <div id="security" class="center">
+    <div class="other center menu" id="nav">
+        <div class="logout">
+            <a href="{{ url_for("index") }}" title="back!!">
+                <i class="fa fa-angle-double-left fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
+            </a>
+        </div>
+
+        <div id="delete">
             <form method="post">
-                <label>访问密码:</label>
-                <input type="password" name="pwd" placeholder="请输入"/>
-                <button type="submit" name="button" value="security">确定</button>
+                <button type="submit" name="button" value="delete">删除</button>
             </form>
         </div>
+    </div>
 
-    {% else %}
-
-        <div class="other center menu" id="nav">
-            <div class="logout">
-                <a href="{{ url_for("index") }}" title="back!!">
-                    <i class="fa fa-angle-double-left fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
-                </a>
-            </div>
-{#                <div id="download">#}
-{#                    <form method="post">#}
-{#                        <button type="submit" name="button" value="download">下载</button>#}
-{#                    </form>#}
-{#                </div>#}
-
-{#                <div id="share">#}
-{#                    {% if file.password is none %}#}
-{#                        <form method="post" action="{{ url_for("share_friends", share_type="share") }}">#}
-{#                            <input name="code" type="hidden" value="1">#}
-{#                            <button name="button" value="share">分享</button>#}
-{#                        </form>#}
-{#                    {% else %}#}
-{#                        <form method="post" action="{{ url_for("share_friends", share_type="unshare") }}">#}
-{#                            <input name="code" type="hidden" value="2">#}
-{#                            <button name="button" value="unshare">取消分享</button>#}
-{#                        </form>#}
-{#                    {% endif %}#}
-{#                </div>#}
-
-                <div id="delete">
-                    <form method="post">
-                        <button type="submit" name="button" value="delete">删除</button>
-                    </form>
-                </div>
-{#            <div class="logout">#}
-{#                <a href="{{ url_for("logout") }}" title="Logout!!">#}
-{#                    <i class="fa fa-times fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>#}
-{#                </a>#}
-{#            </div>#}
+    <div id="information" data-id="{{ file.fid|e }}" class="center">
+        <div>
+            <label>文件名</label>
+            <span>{{ file.filename|e }}</span>
         </div>
-
-        <div id="information" data-id="{{ file.fid|e }}" class="center">
-            <div>
-                <label>文件名</label>
-                <span>{{ file.filename|e }}</span>
-            </div>
-            <div>
-                <label>创建时间</label>
-                <span>{{ file.creat_date|dateformat }}</span>
-            </div>
-            <div>
-                <label>文件地址</label>
-                {% if file.password %}
-                    <span>{{ url_for("details", fid=file.fid|e) }}</span>
-                    <br/>
-                    <label>访问密码</label>
-                    <span>{{ file.password|e }}</span>
-                {% else %}
-                    <span>{{ url_for("details", fid=file.fid|e) }}</span>
-                {% endif %}
-            </div>
+        <div>
+            <label>创建时间</label>
+            <span>{{ file.creat_date|dateformat }}</span>
         </div>
-    {% endif %}
-
-    <script type="text/javascript">
-        $("button").bind("click", function () {
-            var b = this.value;
-            console.log(b);
-            {#            r=$.ajax({#}
-            switch (b) {
-                case "download":
-                    break;
-                case "share":
-                    $('input[name="code"]').val($("#information").attr("data-id")).attr("name", "id");
-                    break;
-                case "unshare":
-                    $('input[name="code"]').val($("#information").attr("data-id")).attr("name", "id");
-                    break;
-                case "delete":
-                    break;
-            }
-            {#                type: "POST",#}
-            {#                async: false,#}
-            {#                url: u,#}
-            {#                data: {"id": $("#information").attr("data-id")},#}
-            {#                success: function (data) {#}
-            {##}
-            {#                    if (data.code == 302) {#}
-            {#                        location.reload()#}
-            {#                    }#}
-            {#                }#}
-            {#            });#}
-        });
-    </script>
-
+        <div>
+            <label>文件地址</label>
+            {% if file.password %}
+                <span>{{ url_for("details", fid=file.fid|e) }}</span>
+                <br/>
+                <label>访问密码</label>
+                <span>{{ file.password|e }}</span>
+            {% else %}
+                <span>{{ url_for("details", fid=file.fid|e) }}</span>
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

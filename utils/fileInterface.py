@@ -1,15 +1,16 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import fnmatch
 import functools
 import hashlib
 from collections import defaultdict
-from os import listdir as os_listdir, remove as os_remove, path as os_path
-
+import os
+from config import PLUPLOAD_HASH_BUFF_SIZE
 from dbInterface import write_db
-from units import (char_trans, id_generator)
+from common import (char_trans, id_generator)
 
 __all__ = ["FileInterface"]
+HASH_BUFF_SIZE = PLUPLOAD_HASH_BUFF_SIZE
 
 
 def catch_err_msg(func):
@@ -87,10 +88,10 @@ class FileInterface(FileBase):
         file_block_list = []
 
         if uploadpath is None:
-            uploadpath = os_path.abspath(os_path.dirname(__file__))
+            uploadpath = os.path.abspath(os.path.dirname(__file__))
 
         # find file blocks
-        for file_ in os_listdir(uploadpath):
+        for file_ in os.listdir(uploadpath):
             file_ = char_trans(file_)
 
             if fnmatch.fnmatch(file_, u"{0}*".format(filename)):
@@ -101,27 +102,27 @@ class FileInterface(FileBase):
         _MD5 = hashlib.md5()
 
         for file_item in file_block_list:
-            with open(os_path.join(uploadpath, file_item), "rb", buffering=4) as rf:
-                _MD5.update(rf.read(4))
+            with open(os.path.join(uploadpath, file_item), "rb", buffering=HASH_BUFF_SIZE) as rf:
+                _MD5.update(rf.read(HASH_BUFF_SIZE))
 
         if _MD5.hexdigest() == getattr(self.md, "hash", ""):
             filename, filepath, is_exist = "", "", False
             for file_item in file_block_list:
                 if any([not filename, not filepath]):
                     filename, _chunk_block = file_item.rsplit("_", 1)
-                    filepath = os_path.join(uploadpath, filename)
+                    filepath = os.path.join(uploadpath, filename)
 
-                    if os_path.exists(filepath):
+                    if os.path.exists(filepath):
                         is_exist = True
 
-                _filepath = os_path.join(uploadpath, file_item)
+                _filepath = os.path.join(uploadpath, file_item)
                 if not is_exist:
                     with open(_filepath, "rb") as rf:
-                        self.write_file(path=filepath, content=rf.read(), buff_size=os_path.getsize(_filepath))
+                        self.write_file(path=filepath, content=rf.read(), buff_size=os.path.getsize(_filepath))
                 else:
                     return "Exist"
 
-                os_remove(_filepath)
+                os.remove(_filepath)
 
             return "Completed"
         else:
@@ -136,15 +137,13 @@ class FileInterface(FileBase):
         :return: how many chunks has been saved. int type.
         """
         count = 0
-        if uploadpath is None:  # TODO: 没uploadpath报错
-            uploadpath = os_path.abspath(os_path.dirname(__file__))
 
-        if os_path.exists(os_path.join(uploadpath, filename)):
+        if os.path.exists(os.path.join(uploadpath, filename)):
             return chunks
 
         for chunk in range(chunks):
-            filepath = os_path.join(uploadpath, "%s_%02d" % (filename, chunk))
-            if os_path.exists(filepath):
+            filepath = os.path.join(uploadpath, "%s_%02d" % (filename, chunk))
+            if os.path.exists(filepath):
                 count += 1
             else:
                 break
@@ -154,6 +153,14 @@ class FileInterface(FileBase):
     def verify(self, input_pwd=""):
         assert hasattr(self.md, "password")
         return (not self.md.password) and True or ((input_pwd == self.md.password) and True or False)
+
+    def get_file_name(self, is_file_prefix):
+        if is_file_prefix:
+            real_filename = "_".join([self.md.fid, self.md.filename])
+        else:
+            real_filename = self.md.filename
+
+        return real_filename
 
     @catch_err_msg
     def delete_file(self, db_obj):

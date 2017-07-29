@@ -1,13 +1,13 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import sqlite3
 
 from flask import _app_ctx_stack
 
-from app import app
+import config as Cfg
 
-SCHEMA_SQL = app.config["SCHEMA_SQL_FILE"]
-DB_PATH = app.config["DB_DIR"]
+SCHEMA_SQL = Cfg.SCHEMA_SQL_FILE
+DB_PATH = Cfg.DB_DIR
 
 
 def connect_db():
@@ -27,7 +27,7 @@ def get_db():
 def init_db():
     db = connect_db()
 
-    with app.open_resource(SCHEMA_SQL, mode="r") as rf:
+    with open(SCHEMA_SQL, mode="r") as rf:
         db.cursor().executescript(rf.read())
     db.commit()
 

@@ -1,18 +1,28 @@
 # -*- coding: utf-8 -*-
 import random
-import string
 import socket
+import string
 
 try:
-    from dbInterface import query_db
+    from dbItf import query_db
 except ImportError as e:
     import traceback
 
     traceback.print_exc()
     # print "Track INFO: ", u"Unable to import: {} in {}".format(e.message, __file__)
 
+from datetime import (datetime, timedelta)
 
-def char_trans(word, coding="utf-8", str_=False):
+
+def datetime_format(date, format_='%Y.%m.%d'):
+    try:
+        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+    except ValueError:
+        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S") + timedelta(hours=10)
+    return date_obj.strftime(format_)
+
+
+def char_convert(word, coding="utf-8", str_=False):
     """
     :param str_: 是否转换成str。默认返回utf8
     """
@@ -24,7 +34,7 @@ def char_trans(word, coding="utf-8", str_=False):
             try:
                 return word.encode(coding)
             except UnicodeEncodeError:
-                return char_trans(word.encode("gbk"), str_=True)
+                return char_convert(word.encode("gbk"), str_=True)
 
     if isinstance(word, unicode):
         return word
@@ -33,7 +43,7 @@ def char_trans(word, coding="utf-8", str_=False):
         try:
             return word.decode(coding)
         except UnicodeDecodeError:
-            return char_trans(word.decode("gbk"))
+            return char_convert(word.decode("gbk"))
 
 
 def id_generator(size=6, db=None, chars=string.ascii_letters + string.digits, check_db=False):

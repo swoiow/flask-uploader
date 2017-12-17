@@ -2,27 +2,44 @@
 {% block title %}Index{% endblock %}
 
 {% block content %}
-    <div class="menu center">
-        <div><a href="{{ url_for("uploads") }}">上传</a></div>
-        <div style="display: inline-flex">
-            <a id="pre" style="margin: 0 1rem" href="javascript:;">上一页</a>
-            <a id="next" style="margin: 0 1rem" href="javascript:;">下一页</a>
-        </div>
-    </div>
-    <div class="content center">
+    <div class="container">
+        <ul class="nav nav-tabs">
+            {% for cls, link, title in [ ("upload", url_for('uploads'), "上传"),
+            ("pre", "javascript:;", "上一页"),
+            ("next", "javascript:;", "下一页"),
+            ] %}
+                <li><a id="{{ cls }}" href="{{ link }}">{{ title }}</a></li>
+            {% endfor %}
+        </ul>
+
         {% if files %}
-            <ol>
+            <table class="table table-striped table-hover">
+                <thead>
+                <tr>
+                    {% for title in ["#", "文件名", "时间"] %}
+                        <th>{{ title }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+
+                <tbody>
                 {% for item in files %}
-                    <li><a href="{{ url_for("details", fid=item.fid|e) }}">{{ item.filename|e }}</a></li>
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td><a href="{{ url_for("details", fid=item.fid|e) }}">{{ item.filename|e }}</a></td>
+                        <td></td>
+                    </tr>
                 {% endfor %}
-            </ol>
+                </tbody>
+            </table>
+
         {% else %}
-            <h3>No files uploaded.</h3>
+            <h3 class="text-center">No files uploaded.</h3>
         {% endif %}
     </div>
 
     <script>
-        var cp=new Number("{{ cp }}");
+        var cp = new Number("{{ cp }}");
         $("#pre").bind("click", function () {
             location.href = "http://" + location.hostname + ":" + location.port + "/pages/" + ((cp - 1 >= 0) && (cp - 1) || 1);
         });

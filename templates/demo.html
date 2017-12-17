@@ -1,195 +1,228 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
-    <title>Upload</title>
+{% extends "layout.html" %}
+{% block title %}Upload{% endblock %}
 
-    <style> a.rm {
-        color: red;
-        margin: 0 1rem;
-        text-decoration: none;
-    }
+{% block css %}
+    <style>
+        a.rm {
+            color: red;
+            margin: 0 1rem;
+            text-decoration: none;
+        }
 
-    .upload-tips {
-        width: 450px;
-        border: 3px dashed rgba(128, 128, 128, 0.2);
-        border-radius: 1rem;
-        text-align: center;
-        padding: 3rem 0;
-        color: #bbb;
-        z-index: -99;
-        margin: 1rem 0;
-    }
+        .upload-tips {
+            border: 3px dashed rgba(128, 128, 128, 0.2);
+            border-radius: 1rem;
+            text-align: center;
+            padding: 3rem 0;
+            color: #bbb;
+            z-index: -99;
+            margin: 1rem 0;
+        }
 
-    #container > a {
-        margin: 0 1rem;
-    }
+        #check_status {
+            color: blue;
+        }
+    </style>
+{% endblock %}
 
-    #check_status {
-        color: blue;
-    } </style>
-</head>
-<body>
-<div id="upload">
-    <div id="container">
-        <a href="{{ url_for("index") }}" style="float: none">返回文件列表</a>
-        <a id="pickfiles" href="javascript:;">选择文件</a>
-        <a id="uploadfiles" href="javascript:;">上传文件</a>
-    </div>
-    <div id="drop_files">
-        <div class="upload-tips"><span>文件拖放至此处</span></div>
+{% block content %}
+    <div id="upload" class="container">
+        <div id="upload-box">
+            <ul class="nav nav-pills">
+                <li><a href="{{ url_for("index") }}">返回文件列表</a></li>
+                <li><a id="pickfiles" href="javascript:;">选择文件</a></li>
+                <li><a id="uploadfiles" href="javascript:;">上传文件</a></li>
+            </ul>
+        </div>
+        <div id="drop_files">
+            <div class="upload-tips container"><span>文件拖放至此处</span></div>
+        </div>
     </div>
 
-    <script src="/static/md5.js" type="text/javascript"></script>
-    <script src="/static/jquery.min.js" type="text/javascript"></script>
+    <div class="js" hidden>
+        <script type="text/javascript" src="/static/md5.js"></script>
+        <script type="text/javascript" src="/static/jquery.min.js"></script>
 
-    <script src="/static/plupload.full.min.js" type="text/javascript"></script>
-    <script type="text/javascript">
-        function CheckHash(up, file) {
-            var Of = file.getNative();
-            var cs = up.settings.chunk_size;
-            var max_chunks = Math.ceil(file.size / cs);
-
-            var Reader = new FileReader();
-            Reader.onload = function (e) {
-                var hash = CryptoJS.MD5(CryptoJS.enc.Latin1.parse(e.target.result)).toString();
-                QueryF(file, hash, max_chunks);
-                console.log(file.name + " MD5: ", hash);
-            };
-
-            Reader.readAsBinaryString(Of.slice(0, 4096));
-        }
-
-        function CheckHash2(up, file) {
-            var hash = CryptoJS.algo.MD5.create();
-            var Of = file.getNative(), cs = up.settings.chunk_size;
-            var max_chunks = Math.ceil(Of.size / cs);
-            var i = 0;
-
-            function readBlob() {
-                var s = i * cs, e = s + {{ cfg.PLUPLOAD_HASH_BUFF_SIZE }};
-                return Of.slice(s, e)
-            }
-
-            var reader = new FileReader();
-            reader.onload = function () {
-                // callback
-                //t = tr.result.split(",")[1];  //# for base64
-                var t = CryptoJS.enc.Latin1.parse(reader.result);
-                hash.update(t);
-
-                // cycle
-                if (i < max_chunks) {
-                    i++;
-                    //tr.readAsDataURL(readBlob(i));  //# for base64
-                    reader.readAsBinaryString(readBlob(i));
-                } else {
-                    // console.log("Base64 md5", hash.finalize().toString());  //# for base64
-                    var hs = hash.finalize().toString();
-                    QueryF(file, hs, max_chunks);
-                    console.log(file.name + " MD5: ", hs);
-                }
-            };
-            //tr.readAsDataURL(readBlob(i));  //# for base64
-            reader.readAsBinaryString(readBlob(i));
-        }
-
-        function QueryF(fO, h, c) {
-            $.post({
-                url: "{{ url_for('check_uploads') }}",
-                data: {"hs": h, "mc": c},
-                async: false,
-                success: function (data) {
-                    //console.log("QueryF debug: ", fO.loaded, data.has_loaded); //debug
-                    fO.has_checked = true;
-                    fO.hash = h;
-                    if (data.has_loaded >= fO.size) {
-                        fO.status = 5;
-                        return uploader.trigger("FileUploaded", fO)
-                    } else {
-                        // File offset
-                        fO.loaded = data.has_loaded || 0;
-                        return $("#" + fO.id + "> b:eq(0)").html("<span id='check_status'>Ready</span>");
-                    }
-                }
-            })
-        }
-        var uploader = new plupload.Uploader({
-            container: document.getElementById('container'),
-            browse_button: 'pickfiles',
-            drop_element: "drop_files",
-
-            runtimes: 'html5,html4',  // flash,
-            url: '{{ url_for("uploads") }}',
-            chunk_size: '{{ cfg.PLUPLOAD_CHUNK_SIZE }}',
-            max_retries: 3,
-            unique_names: true,
-            prevent_duplicates: true,
-            filters: {
-                max_file_size: '{{ cfg.PLUPLOAD_MAX_CONTENT_LENGTH }}',
-                // mime_types: [
-                //     {title: "Media files", extensions: "mp4,mp3"},
-                //     {title: "Image files", extensions: "jpg,gif,png,pdf,bmp,jpeg"},
-                //     {title: "Zip files", extensions: "zip,rar,7z,bz2"},
-                //     {title: "Office files", extensions: "doc,docx,xls,xlsx,ppt,pptx"},
-                //     {title: "Normal Twxt files", extensions: "txt,md"}
-                // ]
-            },
-
-            preinit: {
-                UploadFile: function (up, file) {
-                    file.target_name = file.name;
-                    up.setOption('multipart_params', {"hs": file.hash});
-                }
-            },
-
-            init: {  // #start
-                PostInit: function () {
-                    document.getElementById('uploadfiles').onclick = function () {
-                        uploader.start();
-                        return false;
-                    };
+        <script type="text/javascript" src="/static/plupload.full.min.js"></script>
+        <script type="text/javascript">
+            var AppUpload = {
+                hash_offset: 4096,
+                cfg: null,
+                api: {
+                    check_uploads: "{{ url_for('check_uploads') }}",
+                    uploads: "{{ url_for('uploads') }}",
                 },
-
-                FilesAdded: function (up, files) {
-                    plupload.each(files, function (file) {
-                        var h = '<div id="' + file.id + '"><a class="rm" href="javascript:;">&#10008;</a>' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b></div>';
-                        document.getElementById('drop_files').innerHTML += h;
-                        $("a.rm").bind("click", function () {
-                            var d = $(this).closest("div"), fo = uploader.getFile(d.attr("id"));
-                            uploader.removeFile(fo);
-                            d.remove();
-                        });
-                        $("#" + file.id + "> b:eq(0)").html("<span id='check_status'>Checking</span>");
-
-                        // file.has_checked is avoid duplicate checks.
-                        if (file.has_checked != true) {
-                            CheckHash2(up, file)
-                        } else {
-                            alert("check hash fail")
-                        }
+                getConfig: function () {
+                    $.ajax({
+                        async: false,
+                        url: "{{ url_for('get_config') }}",
+                    }).done(function (data) {
+                        AppUpload.cfg = data;
                     });
                 },
 
-                UploadProgress: function (up, file) {
-                    $("#" + file.id + "> b:eq(0)").html("<span>Uploding " + file.percent + "%</span>");
+                CheckHash: function (up, file) {
+                    var Of = file.getNative();
+                    if (Of.size < AppUpload.hash_offset) {
+                        return AppUpload.CheckHashByFull(up, file)
+                    } else {
+                        return AppUpload.CheckHashByPart(up, file)
+                    }
                 },
 
-                FileUploaded: function (up, file, info) {
-                    $("#" + file.id + "> b:eq(0)").html("<span style='color:green'>UploadComplete</span>");
+                CheckHashByFull: function (up, file) {
+                    var Of = file.getNative();
+                    var cs = up.settings.chunk_size;
+                    var max_chunks = Math.ceil(file.size / cs);
+
+                    var Reader = new FileReader();
+                    Reader.onload = function (e) {
+                        var hash = CryptoJS.MD5(CryptoJS.enc.Latin1.parse(e.target.result)).toString();
+                        AppUpload.QueryF(file, hash, max_chunks);
+                        console.log(file.name + " MD5: ", hash);
+                    };
+
+                    Reader.readAsBinaryString(Of);
                 },
 
-                Error: function (up, args) {
-                    console.log('[Error] ', args);
-                    alert(args.message);
+                CheckHashByPart: function (up, file) {
+                    /* 分段计算hash，*/
+                    var hash = CryptoJS.algo.MD5.create();
+                    var Of = file.getNative(),
+                        chunk_size = up.settings.chunk_size;
+                    var max_chunks = Math.ceil(Of.size / chunk_size);
+                    var i = 0;
+
+                    function readBlob() {
+                        var s = i * chunk_size,
+                            e = s + AppUpload.cfg.PLUPLOAD_HASH_BUFF_SIZE;
+                        return Of.slice(s, e)
+                    }
+
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        // callback
+                        //t = tr.result.split(",")[1];  //# for base64
+                        var t = CryptoJS.enc.Latin1.parse(reader.result);
+                        hash.update(t);
+
+                        // cycle
+                        if (i < max_chunks) {
+                            i++;
+                            //tr.readAsDataURL(readBlob(i));  //# for base64
+                            reader.readAsBinaryString(readBlob(i));
+                        } else {
+                            // console.log("Base64 md5", hash.finalize().toString());  //# for base64
+                            var hs = hash.finalize().toString();
+                            AppUpload.QueryF(file, hs, max_chunks);
+                            console.log(file.name + " MD5: ", hs);
+                        }
+                    };
+                    //tr.readAsDataURL(readBlob(i));  //# for base64
+                    reader.readAsBinaryString(readBlob(i));
+                },
+
+                QueryF: function (fO, h, c) {
+                    $.post({
+                        url: AppUpload.api.check_uploads,
+                        data: {"hs": h, "mc": c},
+                        async: false,
+                        success: function (data) {
+                            //console.log("QueryF debug: ", fO.loaded, data.has_loaded); //debug
+                            fO.has_checked = true;
+                            fO.hash = h;
+                            if (data.has_loaded >= fO.size) {
+                                fO.status = 5;
+                                return uploader.trigger("FileUploaded", fO)
+                            } else {
+                                // File offset
+                                fO.loaded = data.has_loaded || 0;
+                                return $("#" + fO.id + "> b:eq(0)").html("<span id='check_status'>Ready</span>");
+                            }
+                        }
+                    })
                 }
-            }  // end
-        });
 
-        uploader.init();
-    </script>
-</div>
+            };
 
-</body>
-</html>
+            AppUpload.getConfig();
+        </script>
+
+        <script type="text/javascript">
+            var uploader = new plupload.Uploader({
+                container: document.getElementById('upload-box'),
+                browse_button: 'pickfiles',
+                drop_element: "drop_files",
+
+                runtimes: 'html5,html4',  // flash,
+                url: AppUpload.api.uploads,
+                chunk_size: AppUpload.cfg.PLUPLOAD_CHUNK_SIZE,
+                max_retries: 3,
+                unique_names: true,
+                prevent_duplicates: true,
+                filters: {
+                    max_file_size: AppUpload.cfg.PLUPLOAD_MAX_CONTENT_LENGTH,
+                    // mime_types: [
+                    //     {title: "Media files", extensions: "mp4,mp3"},
+                    //     {title: "Image files", extensions: "jpg,gif,png,pdf,bmp,jpeg"},
+                    //     {title: "Zip files", extensions: "zip,rar,7z,bz2"},
+                    //     {title: "Office files", extensions: "doc,docx,xls,xlsx,ppt,pptx"},
+                    //     {title: "Normal Twxt files", extensions: "txt,md"}
+                    // ]
+                },
+
+                preinit: {
+                    UploadFile: function (up, file) {
+                        file.target_name = file.name;
+                        up.setOption('multipart_params', {"hs": file.hash});
+                    }
+                },
+
+                init: {  // #start
+                    PostInit: function () {
+                        document.getElementById('uploadfiles').onclick = function () {
+                            uploader.start();
+                            return false;
+                        };
+                    },
+
+                    FilesAdded: function (up, files) {
+                        plupload.each(files, function (file) {
+                            var h = '<div id="' + file.id + '"><a class="rm" href="javascript:;">&#10008;</a>' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b></div>';
+                            document.getElementById('drop_files').innerHTML += h;
+                            $("a.rm").bind("click", function () {
+                                var d = $(this).closest("div"), fo = uploader.getFile(d.attr("id"));
+                                uploader.removeFile(fo);
+                                d.remove();
+                            });
+                            $("#" + file.id + "> b:eq(0)").html("<span id='check_status'>Checking</span>");
+
+                            // file.has_checked is avoid duplicate checks.
+                            if (file.has_checked != true) {
+                                AppUpload.CheckHash(up, file)
+                            } else {
+                                alert("check hash fail")
+                            }
+                        });
+                    },
+
+                    UploadProgress: function (up, file) {
+                        $("#" + file.id + "> b:eq(0)").html("<span>Uploding " + file.percent + "%</span>");
+                    },
+
+                    FileUploaded: function (up, file, info) {
+                        $("#" + file.id + "> b:eq(0)").html("<span style='color:green'>UploadComplete</span>");
+                    },
+
+                    Error: function (up, args) {
+                        console.log('[Error] ', args);
+                        alert(args.message);
+                    }
+                }  // end
+            });
+
+            uploader.init();
+        </script>
+    </div>
+
+{% endblock %}

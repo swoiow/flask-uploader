@@ -3,39 +3,38 @@
 {% block title %}{% if allowed %}文件信息{% else %}访问限制{% endif %}{% endblock %}
 
 {% block content %}
-    <div class="other center menu" id="nav">
-        <div class="logout">
-            <a href="{{ url_for("index") }}" title="back!!">
-                <i class="fa fa-angle-double-left fa-lg" style="color: rgba(152, 152, 152, 0.5);"></i>
-            </a>
-        </div>
+    <div class="container">
+        <form method="post">
+            <ul class="nav nav-tabs">
+                <li><a href="/">返回文件列表</a></li>
+                <li>
+                    <button type="submit" name="button" value="delete">删除</button>
+                </li>
+            </ul>
+        </form>
 
-        <div id="delete">
-            <form method="post">
-                <button type="submit" name="button" value="delete">删除</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="information" data-id="{{ file.fid|e }}" class="center">
-        <div>
-            <label>文件名</label>
-            <span>{{ file.filename|e }}</span>
-        </div>
-        <div>
-            <label>创建时间</label>
-            <span>{{ file.creat_date|dateformat }}</span>
-        </div>
-        <div>
-            <label>文件地址</label>
-            {% if file.password %}
-                <span>{{ url_for("details", fid=file.fid|e) }}</span>
-                <br/>
-                <label>访问密码</label>
-                <span>{{ file.password|e }}</span>
-            {% else %}
-                <span>{{ url_for("details", fid=file.fid|e) }}</span>
-            {% endif %}
-        </div>
+        <table class="table table-striped table-hover">
+            <tbody>
+            <tr>
+                <th scope="row">文件名</th>
+                <td><span>{{ file.filename|e }}</span></td>
+            </tr>
+            <tr>
+                <th scope="row">创建时间</th>
+                <td><span>{{ file.creat_date|dateformat }}</span></td>
+            </tr>
+            <tr>
+                <th scope="row">文件地址</th>
+                <td>{% if file.password %}
+                    <span>{{ url_for("details", fid=file.fid|e) }}</span>
+                    <br/>
+                    <label>访问密码</label>
+                    <span>{{ file.password|e }}</span>
+                {% else %}
+                    <span>{{ url_for("details", fid=file.fid|e) }}</span>
+                {% endif %}</td>
+            </tr>
+            </tbody>
+        </table>
     </div>
 {% endblock %}

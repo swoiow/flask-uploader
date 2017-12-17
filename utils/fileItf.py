@@ -3,13 +3,14 @@
 import fnmatch
 import functools
 import hashlib
-from collections import defaultdict
 import os
-from config import PLUPLOAD_HASH_BUFF_SIZE
-from dbInterface import write_db
-from common import (char_trans, id_generator)
+from collections import defaultdict
 
-__all__ = ["FileInterface"]
+from config import PLUPLOAD_HASH_BUFF_SIZE
+from dbItf import write_db
+from helper import (char_convert, id_generator)
+
+__all__ = ["FileItf"]
 HASH_BUFF_SIZE = PLUPLOAD_HASH_BUFF_SIZE
 
 
@@ -75,26 +76,26 @@ class FileInterface(FileBase):
         return rh
 
     @staticmethod
-    def write_file(path, content, buff_size, **kwargs):
+    def write_file(path, content, buff_size, mode="wb", **kwargs):
         """
         :param path: include path and filename
         :param content: the write content
         :param buff_size: buffering
         """
-        with open(path, "ab", buffering=buff_size) as wf:
+        with open(path, mode, buffering=buff_size) as wf:
             wf.write(content)
 
     def mix_file(self, filename, uploadpath=None):
-        file_block_list = []
-
         if uploadpath is None:
             uploadpath = os.path.abspath(os.path.dirname(__file__))
 
         # find file blocks
-        for file_ in os.listdir(uploadpath):
-            file_ = char_trans(file_)
+        file_block_list = []
 
-            if fnmatch.fnmatch(file_, u"{0}*".format(filename)):
+        for file_ in os.listdir(uploadpath):
+            file_ = char_convert(file_)
+
+            if fnmatch.fnmatch(file_, u"{}*".format(filename)):
                 file_block_list.append(file_)
         file_block_list.sort(key=lambda i: int(i.rsplit("_", 1)[1]))
 
@@ -118,7 +119,10 @@ class FileInterface(FileBase):
                 _filepath = os.path.join(uploadpath, file_item)
                 if not is_exist:
                     with open(_filepath, "rb") as rf:
-                        self.write_file(path=filepath, content=rf.read(), buff_size=os.path.getsize(_filepath))
+                        self.write_file(path=filepath,
+                                        content=rf.read(),
+                                        mode="ab",
+                                        buff_size=os.path.getsize(_filepath))
                 else:
                     return "Exist"
 
@@ -184,3 +188,6 @@ class FileInterface(FileBase):
             msg = write_db(db_obj, sql, args=(pwd, fid))
 
         return msg
+
+    def __repr__(self):
+        return "<{} @name={}>".format(self.__class__.__name__, self.metadata.filename)

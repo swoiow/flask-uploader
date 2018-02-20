@@ -9,7 +9,8 @@ https://github.com/moxiecode/plupload/wiki/File#loaded-property
 import os
 from datetime import datetime
 
-from flask import (Flask, render_template, request, redirect, url_for, abort, jsonify, _app_ctx_stack)
+from flask import (Flask, render_template, request, redirect, url_for, abort, jsonify, _app_ctx_stack,
+                   send_from_directory)
 
 import config as CFG
 from utils import *
@@ -130,6 +131,17 @@ def check_uploads():
     return jsonify(rt)
 
 
+@app.route("/download/<fid>")
+def download(fid):
+    sql = 'SELECT fid, filename FROM "index" WHERE fid = ?;'
+    rv = query_db(get_db(), sql, args=(fid,), one=True)
+    if rv:
+        file_obj = File(dict(rv))
+        return send_from_directory(CFG.UPLOAD_DIR, file_obj.md.filename)
+
+    return 404
+
+
 @app.teardown_request
 def after_request(response):
     top = _app_ctx_stack.top
@@ -142,7 +154,7 @@ def after_request(response):
 if __name__ == '__main__':
     ip = get_local_ip_by_prefix("192")
     print(u"\n本机IP：%s" % ip)
-    print (u"请使用手机浏览器'Internet Explorer'，访问  http://{}:{}\n".format(ip, CFG.PORT))
+    print(u"请使用手机浏览器'Internet Explorer'，访问  http://{}:{}\n".format(ip, CFG.PORT))
 
     kw = dict(debug=CFG.DEBUG, port=CFG.PORT, host=CFG.HOST)
     app.run(**kw)

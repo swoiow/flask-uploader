@@ -5,7 +5,7 @@ from gevent.pool import Pool
 from gevent.pywsgi import WSGIServer
 
 from view import app
-from utils.common import get_local_ip_by_prefix
+from utils.helper import get_local_ip_by_prefix
 import config
 
 monkey.patch_all()

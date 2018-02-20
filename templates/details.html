@@ -30,9 +30,14 @@
                     <br/>
                     <label>访问密码</label>
                     <span>{{ file.password|e }}</span>
-                {% else %}
+                    {% else %}
                     <span>{{ url_for("details", fid=file.fid|e) }}</span>
-                {% endif %}</td>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">下载文件</th>
+                <td><a href="{{ url_for('download', fid=file.fid|e) }}"> 点击下载 </a></td>
             </tr>
             </tbody>
         </table>

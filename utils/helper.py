@@ -4,7 +4,7 @@ import socket
 import string
 
 try:
-    from dbItf import query_db
+    from .dbItf import query_db
 except ImportError as e:
     import traceback
 
@@ -30,13 +30,13 @@ def char_convert(word, coding="utf-8", str_=False):
         if isinstance(word, str):
             return word
 
-        if isinstance(word, unicode):
+        if isinstance(word, str):
             try:
                 return word.encode(coding)
             except UnicodeEncodeError:
                 return char_convert(word.encode("gbk"), str_=True)
 
-    if isinstance(word, unicode):
+    if isinstance(word, str):
         return word
 
     if isinstance(word, str):

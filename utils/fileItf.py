@@ -7,8 +7,8 @@ import os
 from collections import defaultdict
 
 from config import PLUPLOAD_HASH_BUFF_SIZE
-from dbItf import write_db
-from helper import (char_convert, id_generator)
+from .dbItf import write_db
+from .helper import (char_convert, id_generator)
 
 __all__ = ["FileItf"]
 HASH_BUFF_SIZE = PLUPLOAD_HASH_BUFF_SIZE
@@ -22,7 +22,7 @@ def catch_err_msg(func):
         # wrapper.err_msg = "xxx"
         try:
             wrapper.err_msg = func(*args, **kw)
-        except Exception, e:
+        except Exception as e:
             wrapper.err_msg = e
         finally:
             traceback.print_exc()
@@ -41,7 +41,7 @@ class Meta(object):
 
     def __metadata__(self, key=None, value=None, metadata=None):
         if isinstance(metadata, dict):
-            for k, v in metadata.items():
+            for k, v in list(metadata.items()):
                 self.__metadata___[k] = v
 
         if key and value:
@@ -95,7 +95,7 @@ class FileInterface(FileBase):
         for file_ in os.listdir(uploadpath):
             file_ = char_convert(file_)
 
-            if fnmatch.fnmatch(file_, u"{}*".format(filename)):
+            if fnmatch.fnmatch(file_, "{}*".format(filename)):
                 file_block_list.append(file_)
         file_block_list.sort(key=lambda i: int(i.rsplit("_", 1)[1]))
 
@@ -180,11 +180,11 @@ class FileInterface(FileBase):
     def share_file(db_obj, fid, share_type, pwd=None):
         msg = ""
         sql = 'UPDATE "main"."index" SET "password" = ? WHERE ("fid" = ?);'
-        if share_type == u"share":  # share
+        if share_type == "share":  # share
             pwd = id_generator(4)
             msg = write_db(db_obj, sql, args=(pwd, fid))
 
-        elif share_type == u"unshare":  # stop share
+        elif share_type == "unshare":  # stop share
             msg = write_db(db_obj, sql, args=(pwd, fid))
 
         return msg

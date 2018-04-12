@@ -25,7 +25,7 @@ app.add_template_filter(datetime_format, name="dateformat")
 
 @app.route("/get_config")
 def get_config():
-    upload_config = {k: v for k, v in CFG.__dict__.items() if k.startswith("PLUPLOAD_")}
+    upload_config = {k: v for k, v in list(CFG.__dict__.items()) if k.startswith("PLUPLOAD_")}
     return jsonify(upload_config)
 
 
@@ -48,7 +48,7 @@ def details(fid=None):
     if rv:
         file_obj = File(dict(rv))
 
-        if request.form.get("button", "") == u"delete":  # (session.get("userPMS") == u"admin") and
+        if request.form.get("button", "") == "delete":  # (session.get("userPMS") == u"admin") and
             file_obj.delete_file(db_obj=get_db())
             return redirect(url_for("index"))
 
@@ -153,8 +153,8 @@ def after_request(response):
 
 if __name__ == '__main__':
     ip = get_local_ip_by_prefix("192")
-    print(u"\n本机IP：%s" % ip)
-    print(u"请使用手机浏览器'Internet Explorer'，访问  http://{}:{}\n".format(ip, CFG.PORT))
+    print("\n本机IP：%s" % ip)
+    print("请使用手机浏览器'Internet Explorer'，访问  http://{}:{}\n".format(ip, CFG.PORT))
 
     kw = dict(debug=CFG.DEBUG, port=CFG.PORT, host=CFG.HOST)
     app.run(**kw)

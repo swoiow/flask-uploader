@@ -49,11 +49,11 @@ def write_db(db_obj, query, args=()):
         cur = db_obj.execute(query, args)
         db_obj.commit()
         rtn_msg = "succeed"
-    except Exception, e:
+    except Exception as e:
         rtn_msg = e
     finally:
         return rtn_msg
 
 
 if __name__ == '__main__':
-    print dir()
+    print(dir())

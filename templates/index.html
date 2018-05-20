@@ -27,7 +27,7 @@
                     <tr>
                         <th scope="row">{{ loop.index }}</th>
                         <td><a href="{{ url_for("details", fid=item.fid|e) }}">{{ item.filename|e }}</a></td>
-                        <td></td>
+                        <td>{{ item.creat_date|dateformat }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>

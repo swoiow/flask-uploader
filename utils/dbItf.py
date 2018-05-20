@@ -4,7 +4,7 @@ import sqlite3
 
 from flask import _app_ctx_stack
 
-import config as Cfg
+from config import configProd as Cfg
 
 SCHEMA_SQL = Cfg.SCHEMA_SQL_FILE
 DB_PATH = Cfg.DB_DIR

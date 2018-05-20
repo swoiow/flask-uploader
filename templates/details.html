@@ -4,11 +4,12 @@
 
 {% block content %}
     <div class="container">
-        <form method="post">
+        <form method="post" id="fm">
             <ul class="nav nav-tabs">
                 <li><a href="/">返回文件列表</a></li>
                 <li>
-                    <button type="submit" name="button" value="delete">删除</button>
+                    <input type="text" name="button" value="delete" hidden />
+                    <a href="javascript:;" onclick="document.getElementById('fm').submit();">删除</a>
                 </li>
             </ul>
         </form>
@@ -21,7 +22,7 @@
             </tr>
             <tr>
                 <th scope="row">创建时间</th>
-                <td><span>{{ file.creat_date|dateformat }}</span></td>
+                <td><span>{{ file.creat_date }}</span></td>
             </tr>
             <tr>
                 <th scope="row">文件地址</th>
@@ -30,9 +31,9 @@
                     <br/>
                     <label>访问密码</label>
                     <span>{{ file.password|e }}</span>
-                    {% else %}
+                {% else %}
                     <span>{{ url_for("details", fid=file.fid|e) }}</span>
-                    {% endif %}
+                {% endif %}
                 </td>
             </tr>
             <tr>

@@ -46,7 +46,7 @@
         <script type="text/javascript" src="/static/plupload.full.min.js"></script>
         <script type="text/javascript">
             var AppUpload = {
-                hash_offset: 4096,
+                mini_hash_offset: 4096,
                 cfg: null,
                 api: {
                     check_uploads: "{{ url_for('check_uploads') }}",
@@ -62,16 +62,16 @@
                 },
 
                 CheckHash: function (up, file) {
-                    var Of = file.getNative();
-                    if (Of.size < AppUpload.hash_offset) {
-                        return AppUpload.CheckHashByFull(up, file)
+                    var fObj = file.getSource();
+                    if (fObj.size < this.mini_hash_offset) {
+                        return this.CheckHashByFull(up, file)
                     } else {
-                        return AppUpload.CheckHashByPart(up, file)
+                        return this.CheckHashByPart(up, file)
                     }
                 },
 
                 CheckHashByFull: function (up, file) {
-                    var Of = file.getNative();
+                    var fObj = file.getSource();
                     var cs = up.settings.chunk_size;
                     var max_chunks = Math.ceil(file.size / cs);
 
@@ -82,22 +82,22 @@
                         console.log(file.name + " MD5: ", hash);
                     };
 
-                    Reader.readAsBinaryString(Of);
+                    Reader.readAsBinaryString(fObj);
                 },
 
                 CheckHashByPart: function (up, file) {
                     /* 分段计算hash，*/
-                    var hash = CryptoJS.algo.MD5.create();
-                    var Of = file.getNative(),
-                        chunk_size = up.settings.chunk_size;
-                    var max_chunks = Math.ceil(Of.size / chunk_size);
-                    var i = 0;
-
-                    function readBlob() {
+                    function readBlob(i) {
                         var s = i * chunk_size,
                             e = s + AppUpload.cfg.PLUPLOAD_HASH_BUFF_SIZE;
-                        return Of.slice(s, e)
+                        return fObj.slice(s, e)
                     }
+
+                    var hash = CryptoJS.algo.MD5.create();
+                    var fObj = file.getNative(),
+                        chunk_size = up.settings.chunk_size;
+                    var max_chunks = Math.ceil(fObj.size / chunk_size);
+                    var i = 0;
 
                     var reader = new FileReader();
                     reader.onload = function () {

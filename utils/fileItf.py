@@ -1,35 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import fnmatch
-import functools
 import hashlib
 import os
 from collections import defaultdict
 
-from config import PLUPLOAD_HASH_BUFF_SIZE
+from config import configProd
 from .dbItf import write_db
-from .helper import (char_convert, id_generator)
+from .helper import (catch_err_msg, char_convert, id_generator2)
 
-__all__ = ["FileItf"]
-HASH_BUFF_SIZE = PLUPLOAD_HASH_BUFF_SIZE
-
-
-def catch_err_msg(func):
-    import traceback
-
-    @functools.wraps(func)
-    def wrapper(*args, **kw):
-        # wrapper.err_msg = "xxx"
-        try:
-            wrapper.err_msg = func(*args, **kw)
-        except Exception as e:
-            wrapper.err_msg = e
-        finally:
-            traceback.print_exc()
-            return {"msg": wrapper.err_msg}
-
-    # wrapper.err_msg = ""
-    return wrapper
+HASH_BUFF_SIZE = configProd.PLUPLOAD_HASH_BUFF_SIZE
 
 
 class Meta(object):
@@ -58,11 +38,26 @@ class Meta(object):
 class FileBase(object):
     def __init__(self, fid):
         if isinstance(fid, dict):
-            self.metadata = Meta(fid)
+            self.md = Meta(fid)
         else:
-            self.metadata = Meta({"fid": fid})
+            self.md = Meta({"fid": fid})
 
         self.md = self.metadata
+
+    @property
+    def metadata(self):
+        return self.md
+
+    @staticmethod
+    def encode(x):
+        return hashlib.sha224(x.encode()).hexdigest()
+
+    def _fn(self, path, name):
+        # NOTE: This method should not change as some may depend on it.
+        #       See: https://github.com/ionrock/cachecontrol/issues/63
+        hashed = self.encode(name)
+        parts = list(hashed[:5]) + [hashed]
+        return os.path.join(path, *parts)
 
 
 class FileInterface(FileBase):
@@ -80,13 +75,14 @@ class FileInterface(FileBase):
         """
         :param path: include path and filename
         :param content: the write content
+        :param mode: default: wb
         :param buff_size: buffering
         """
         with open(path, mode, buffering=buff_size) as wf:
             wf.write(content)
 
     def mix_file(self, filename, uploadpath=None):
-        if uploadpath is None:
+        if not uploadpath:
             uploadpath = os.path.abspath(os.path.dirname(__file__))
 
         # find file blocks
@@ -95,9 +91,11 @@ class FileInterface(FileBase):
         for file_ in os.listdir(uploadpath):
             file_ = char_convert(file_)
 
-            if fnmatch.fnmatch(file_, "{}*".format(filename)):
+            if fnmatch.fnmatch(file_, "{}_*".format(filename)):
                 file_block_list.append(file_)
-        file_block_list.sort(key=lambda i: int(i.rsplit("_", 1)[1]))
+
+        if file_block_list:
+            file_block_list.sort(key=lambda i: int(i.rsplit("_", 1)[1]))
 
         # check MD5
         _MD5 = hashlib.md5()
@@ -124,13 +122,13 @@ class FileInterface(FileBase):
                                         mode="ab",
                                         buff_size=os.path.getsize(_filepath))
                 else:
-                    return "Exist"
+                    return dict(msg="Exist")
 
                 os.remove(_filepath)
 
-            return "Completed"
+            return dict(msg="Completed")
         else:
-            return "Not Match"
+            return dict(msg="Hash Not Match")
 
     @staticmethod
     def check_exit_file(filename, chunks, uploadpath=None):
@@ -166,12 +164,26 @@ class FileInterface(FileBase):
 
         return real_filename
 
+    def get_file_path(self, full=True):
+        if full:
+            return os.path.join(configProd.UPLOAD_DIR, self.md.filename)
+        else:
+            return self.md.filename
+
     @catch_err_msg
     def delete_file(self, db_obj):
         sql = 'DELETE FROM "main"."index" WHERE ("id" = ?);'
         err_msg = write_db(db_obj, sql, args=(self.md.id,))
 
-        # TODO:delete file in local
+        if configProd.DELETE_IN_LOCAL:
+            fp = self.get_file_path()
+            if os.path.isfile(fp):
+                os.remove(fp)
+
+                err_msg = "succeed"
+
+            else:
+                err_msg = "Error: %s file not found" % self.get_file_path(full=False)
 
         return err_msg
 
@@ -181,7 +193,7 @@ class FileInterface(FileBase):
         msg = ""
         sql = 'UPDATE "main"."index" SET "password" = ? WHERE ("fid" = ?);'
         if share_type == "share":  # share
-            pwd = id_generator(4)
+            pwd = id_generator2(4)
             msg = write_db(db_obj, sql, args=(pwd, fid))
 
         elif share_type == "unshare":  # stop share

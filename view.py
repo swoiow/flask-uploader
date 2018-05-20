@@ -9,10 +9,10 @@ https://github.com/moxiecode/plupload/wiki/File#loaded-property
 import os
 from datetime import datetime
 
-from flask import (Flask, render_template, request, redirect, url_for, abort, jsonify, _app_ctx_stack,
-                   send_from_directory)
+from flask import (Flask, _app_ctx_stack, abort, jsonify, redirect, render_template, request, send_from_directory,
+                   url_for)
 
-import config as CFG
+from config import configProd as CFG
 from utils import *
 
 if not os.path.exists(CFG.UPLOAD_DIR):
@@ -25,7 +25,7 @@ app.add_template_filter(datetime_format, name="dateformat")
 
 @app.route("/get_config")
 def get_config():
-    upload_config = {k: v for k, v in list(CFG.__dict__.items()) if k.startswith("PLUPLOAD_")}
+    upload_config = {k: v for k, v in CFG.to_list() if k.startswith("PLUPLOAD_") or k.startswith("API_")}
     return jsonify(upload_config)
 
 
@@ -61,12 +61,14 @@ def details(fid=None):
 def uploads():
     if request.method == "POST":
         _file = request.files["file"]
-        filename = char_convert(request.form["name"])
         file_hash = request.form["hs"]
+        filename = char_convert(request.form["name"])
 
         allowed = File.allowed_file(filename, CFG.PLUPLOAD_ALLOWED_EXTENSIONS) if CFG.FILE_EXT_CHECK else True
+
         if any([not _file, not allowed, not file_hash]):
             return jsonify(msg="-2, Not allow"), 501
+
         else:
             chunk = request.form.get("chunk", 0, type=int)  # current chunk block
             chunks = request.form.get("chunks", 0, type=int)  # how many chunks block
@@ -76,7 +78,7 @@ def uploads():
 
             if not get_file:
                 # 文件不存在
-                fid = id_generator(6, check_db=True, db=get_db())
+                fid = id_generator(os.urandom(8))
 
                 file_obj = File(fid)
                 file_obj.md.filename = filename
@@ -100,15 +102,19 @@ def uploads():
 
             if (chunk == chunks - 1) and (chunks > 1):
                 mix_msg = file_obj.mix_file(real_filename, uploadpath=CFG.UPLOAD_DIR)
-                return jsonify(msg="0, " + mix_msg, file_address=url_for("details", fid=file_obj.md.fid))
+                return jsonify(msg="200, " + mix_msg["msg"], file_address=url_for("details", fid=file_obj.md.fid))
 
-            return jsonify(msg="1, Block has been uploaded", uploaded=(chunk + 1) * CFG.PLUPLOAD_CHUNK_SIZE)
+            return jsonify(msg="304, Block has been uploaded", uploaded=(chunk + 1) * CFG.PLUPLOAD_CHUNK_SIZE)
 
     return render_template("demo.html", )
 
 
 @app.route("/check_uploads", methods=["POST"])
 def check_uploads():
+    """
+
+    :return: {"has_loaded": int}
+    """
     rt = {"has_loaded": 0}
     exit_chunks, chunk_size = 0, CFG.PLUPLOAD_CHUNK_SIZE
 
@@ -137,7 +143,7 @@ def download(fid):
     rv = query_db(get_db(), sql, args=(fid,), one=True)
     if rv:
         file_obj = File(dict(rv))
-        return send_from_directory(CFG.UPLOAD_DIR, file_obj.md.filename)
+        return send_from_directory(CFG.UPLOAD_DIR, file_obj.md.filename, as_attachment=True)
 
     return 404
 
@@ -152,7 +158,7 @@ def after_request(response):
 
 
 if __name__ == '__main__':
-    ip = get_local_ip_by_prefix("192")
+    ip = get_local_ip()
     print("\n本机IP：%s" % ip)
     print("请使用手机浏览器'Internet Explorer'，访问  http://{}:{}\n".format(ip, CFG.PORT))
 

@@ -36,11 +36,14 @@ def catch_err_msg(func):
 
 
 def datetime_format(date, format_='%Y.%m.%d'):
-    try:
-        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
-    except ValueError:
-        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S") + timedelta(hours=10)
-    return date_obj.strftime(format_)
+    if date:
+        try:
+            date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+        except ValueError:
+            date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M:%S") + timedelta(hours=10)
+        return date_obj.strftime(format_)
+
+    return "0000-00-00"
 
 
 def char_convert(word, coding="utf-8", str_=False):

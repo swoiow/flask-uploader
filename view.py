@@ -22,6 +22,8 @@ app = Flask("uploads", static_folder="static", template_folder="templates")
 app.config.from_object('config')
 app.add_template_filter(datetime_format, name="dateformat")
 
+CUR_DIR = os.path.abspath(os.path.dirname(__name__))
+
 
 @app.route("/get_config")
 def get_config():
@@ -148,6 +150,25 @@ def download(fid):
     return 404
 
 
+@app.route('/e')
+@app.route('/e/index')
+def e_index():
+    next_path = request.values.get("path")
+    if next_path:
+        global CUR_DIR
+        if next_path == "..":
+            CUR_DIR = os.path.split(CUR_DIR)[0]
+        else:
+            CUR_DIR = os.path.join(CUR_DIR, next_path)
+
+    dir_name = CUR_DIR, os.path.split(CUR_DIR)[-1]
+    folders, files = ls_dir()
+    # return render_template_string(html, dir_folders=folders, dir_files=files, dir_name=dir_name)
+
+    file_set = [File(dict(fid=idx, filename=row, type_="file")).metadata for idx, row in enumerate(files)]
+    return render_template("index.html", files=file_set)
+
+
 @app.teardown_request
 def after_request(response):
     top = _app_ctx_stack.top
@@ -155,6 +176,19 @@ def after_request(response):
         top.sqlite_db.close()
 
     return response
+
+
+def ls_dir():
+    lts = os.listdir(CUR_DIR)
+    folders, files = [], []
+
+    for item in lts:
+        if os.path.isdir(os.path.join(CUR_DIR, item)):
+            folders.append(item)
+        else:
+            files.append(item)
+
+    return iter(folders), iter(files)
 
 
 if __name__ == '__main__':

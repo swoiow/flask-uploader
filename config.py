@@ -21,7 +21,7 @@ class Default(object):
 
 class WebConfig(object):
     DEBUG = True
-    PORT = 801
+    PORT = 30080
     HOST = "0.0.0.0"
 
     CSRF_ENABLED = True

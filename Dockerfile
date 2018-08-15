@@ -16,8 +16,8 @@ RUN addgroup -S app && adduser -S -g app app \
 
 USER app
 
-VOLUME /app/config.py
-
 ENTRYPOINT ["dumb-init", "--"]
+
+EXPOSE 30080
 
 CMD ["/usr/local/bin/python", "wsgi.py"]

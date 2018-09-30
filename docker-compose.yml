@@ -1,9 +1,9 @@
 version: "3"
 services:
   webapp:
-    image: flask-upload
+    image: flask-uploader
     ports:
-    - "0.0.0.0:801:801"
+    - "0.0.0.0:801:30080"
 
     volumes:
     - ./config.py:/app/config.py
